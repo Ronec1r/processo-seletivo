@@ -42,10 +42,58 @@ public class Solicitacao {
 
     // Definição do Enum interno
     public enum StatusSolicitacao {
-        SOLICITADO,
-        LIBERADO,
-        APROVADO,
-        REJEITADO,
-        CANCELADO
+        SOLICITADO {
+            @Override
+            public void transitar(Solicitacao solicitacao, StatusSolicitacao novoStatus) {
+                // SOLICITADO pode ir para LIBERADO ou REJEITADO
+                if (novoStatus == LIBERADO || novoStatus == REJEITADO) {
+                    solicitacao.setStatus(novoStatus);
+                } else {
+                    lancarErro(this, novoStatus);
+                }
+            }
+        },
+        LIBERADO {
+            @Override
+            public void transitar(Solicitacao solicitacao, StatusSolicitacao novoStatus) {
+                // LIBERADO pode ir para APROVADO ou REJEITADO
+                if (novoStatus == APROVADO || novoStatus == REJEITADO) {
+                    solicitacao.setStatus(novoStatus);
+                } else {
+                    lancarErro(this, novoStatus);
+                }
+            }
+        },
+        APROVADO {
+            @Override
+            public void transitar(Solicitacao solicitacao, StatusSolicitacao novoStatus) {
+                // APROVADO só pode ir para CANCELADO
+                if (novoStatus == CANCELADO) {
+                    solicitacao.setStatus(novoStatus);
+                } else {
+                    lancarErro(this, novoStatus);
+                }
+            }
+        },
+        REJEITADO {
+            @Override
+            public void transitar(Solicitacao solicitacao, StatusSolicitacao novoStatus) {
+                throw new IllegalStateException("A solicitação foi REJEITADA e este é um estado final.");
+            }
+        },
+        CANCELADO {
+            @Override
+            public void transitar(Solicitacao solicitacao, StatusSolicitacao novoStatus) {
+                throw new IllegalStateException("A solicitação foi CANCELADA e este é um estado final.");
+            }
+        };
+
+        // Método abstrato que obriga cada status a implementar sua própria regra
+        public abstract void transitar(Solicitacao solicitacao, StatusSolicitacao novoStatus);
+
+        // Método auxiliar para evitar repetição de código
+        protected void lancarErro(StatusSolicitacao atual, StatusSolicitacao novo) {
+            throw new IllegalStateException(String.format("Transição de status inválida: %s para %s", atual, novo));
+        }
     }
 }
