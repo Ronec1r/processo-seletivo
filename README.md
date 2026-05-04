@@ -98,3 +98,67 @@ INSERT INTO categoria (nome) VALUES
    mvn spring-boot:run
    ```
 4. A aplicação estará disponível em `http://localhost:8080`.
+
+## 🧪 Testando a API (Exemplos de Uso)
+
+Abaixo estão os principais endpoints para testar as funcionalidades e regras de negócio da aplicação via Postman, Insomnia ou cURL.
+
+### 1. Criar uma Solicitação
+*   **Método:** `POST`
+*   **URL:** `http://localhost:8080/solicitacoes`
+*   **Body (JSON):**
+    ```json
+    {
+      "solicitanteId": 1,
+      "categoriaId": 1,
+      "descricao": "Aquisição de novos monitores para o setor de TI",
+      "valor": 3500.50
+    }
+    ```
+*   **Comportamento Esperado:** Retorna `201 Created`. A solicitação é criada automaticamente com o status inicial `SOLICITADO` e a data de criação preenchida.
+
+### 2. Validação de Dados (Tratamento de Erros)
+*   **Método:** `POST`
+*   **URL:** `http://localhost:8080/solicitacoes`
+*   **Body (JSON):**
+    ```json
+    {
+      "solicitanteId": 1,
+      "categoriaId": 2,
+      "descricao": "",
+      "valor": -100.00
+    }
+    ```
+*   **Comportamento Esperado:** Retorna `400 Bad Request`. O `GlobalExceptionHandler` intercepta o erro e devolve as mensagens de validação (ex: "A descrição não pode estar vazia", "O valor deve ser maior que zero").
+
+### 3. Listagem Completa (Query Nativa)
+*   **Método:** `GET`
+*   **URL:** `http://localhost:8080/solicitacoes`
+*   **Comportamento Esperado:** Retorna `200 OK`. Traz a listagem mesclando dados do solicitante, categoria e solicitação, ordenados da mais recente para a mais antiga.
+
+### 4. Listagem com Filtros Dinâmicos
+*   **Método:** `GET`
+*   **URL:** `http://localhost:8080/solicitacoes?status=SOLICITADO&categoriaId=1`
+*   **Comportamento Esperado:** Retorna `200 OK`. Traz apenas as solicitações que correspondem aos filtros aplicados. Parâmetros não informados na URL são ignorados pela query no banco de dados.
+
+### 5. Atualizar Status (Transição Válida)
+*   **Método:** `PATCH`
+*   **URL:** `http://localhost:8080/solicitacoes/1/status` *(Substitua `1` pelo ID da solicitação)*
+*   **Body (JSON):**
+    ```json
+    {
+      "status": "LIBERADO"
+    }
+    ```
+*   **Comportamento Esperado:** Retorna `200 OK`. O status avança de forma validada seguindo o fluxo de regras de negócio.
+
+### 6. Impedir Transição Inválida (State Pattern)
+*   **Método:** `PATCH`
+*   **URL:** `http://localhost:8080/solicitacoes/1/status`
+*   **Body (JSON):**
+    ```json
+    {
+      "status": "CANCELADO"
+    }
+    ```
+*   **Comportamento Esperado:** Retorna `400 Bad Request`. Retorna uma mensagem de erro indicando que a transição é inválida (ex: tentando pular de `LIBERADO` direto para `CANCELADO`), protegendo a integridade dos dados e respeitando os estados finais.
