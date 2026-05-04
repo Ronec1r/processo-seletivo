@@ -4,11 +4,32 @@ O **Sistema de Gestão de Solicitações (SGS)** é uma aplicação web desenvol
 
 ## 🚀 Tecnologias Utilizadas
 
-*   **Backend:** Java 17 com Spring Boot
+*   **Backend:** Java 17 com Spring Boot, organizado no diretório `backend/`
 *   **Banco de Dados:** PostgreSQL
 *   **Acesso a Dados:** Spring Data JPA / Hibernate (com uso de SQL Nativo para listagens complexas)
-*   **Frontend:** A definir
+*   **Frontend:** Diretório separado em `frontend/` para futura interface da aplicação
 *   **Gerenciador de Dependências:** Maven
+
+## 📁 Estrutura de Diretórios
+
+```text
+processo-seletivo/
+├── README.md
+├── backend/
+│   ├── mvnw
+│   ├── mvnw.cmd
+│   ├── pom.xml
+│   └── src/
+│       ├── main/
+│       │   ├── java/
+│       │   ├── resources/
+│       │   │   └── application.properties
+│       │   └── scripts_bd/
+│       │       ├── schema.sql
+│       │       └── data.sql
+│       └── test/
+└── frontend/
+```
 
 ## 🧠 Justificativas de Decisões Técnicas
 
@@ -27,9 +48,9 @@ Antes de iniciar, certifique-se de ter instalado em sua máquina:
 
 ## 🗄️ Scripts de Banco de Dados (DDL e DML)
 
-Para o funcionamento da aplicação, é necessário criar um banco de dados chamado `sgs_db` no PostgreSQL. Abaixo estão os scripts obrigatórios para a criação das tabelas e população inicial de dados.
+Para o funcionamento da aplicação, é necessário criar um banco de dados chamado `sgs_db` no PostgreSQL. Os scripts obrigatórios estão disponíveis em `backend/src/scripts_bd/`.
 
-### Script de Criação (DDL - `schema.sql`)
+### Script de Criação (DDL - `backend/src/scripts_bd/schema.sql`)
 ```sql
 CREATE TABLE solicitante (
     id BIGSERIAL PRIMARY KEY,
@@ -55,7 +76,7 @@ CREATE TABLE solicitacao (
 );
 ```
 
-### Script de Inserção dos Dados (DML - `data.sql`)
+### Script de Inserção dos Dados (DML - `backend/src/scripts_bd/data.sql`)
 ```sql
 INSERT INTO solicitante (nome, cpf_cnpj) VALUES
         ('Rone Clay', '111.111.111-11'),
@@ -77,27 +98,57 @@ INSERT INTO categoria (nome) VALUES
 ### 1. Configurando o Banco de Dados
 1. Certifique-se de que o serviço do PostgreSQL está em execução na sua máquina.
 2. Crie um banco de dados vazio chamado `sgs_db`.
-3. Execute o script DDL (`schema.sql`) e, em seguida, o script DML (`data.sql`) disponibilizados acima para criar a estrutura e popular os dados iniciais.
-4. Abra o arquivo `src/main/resources/application.properties` e ajuste as credenciais de conexão do banco de dados (usuário e senha) para corresponderem ao seu ambiente local:
+3. Execute o script DDL (`backend/src/scripts_bd/schema.sql`) e, em seguida, o script DML (`backend/src/scripts_bd/data.sql`) para criar a estrutura e popular os dados iniciais.
+4. Abra o arquivo `backend/src/main/resources/application.properties` e ajuste as credenciais de conexão do banco de dados (usuário e senha) para corresponderem ao seu ambiente local:
    ```properties
    spring.datasource.username=SEU_USUARIO
    spring.datasource.password=SUA_SENHA
+   ```
 
 
 ### 2. Executando a Aplicação
 1. Clone o repositório do projeto:
    ```bash
    git clone https://github.com/Ronec1r/processo-seletivo.git
-   ````
-2. Navegue até o diretório do projeto:
-   ```bash
-   cd processo-seletivo
    ```
-3. Compile e execute a aplicação usando Maven:
+2. Navegue até o diretório do backend:
    ```bash
-   mvn spring-boot:run
+   cd processo-seletivo/backend
+   ```
+3. Compile e execute a aplicação usando Maven Wrapper:
+   ```bash
+   .\mvnw.cmd spring-boot:run
    ```
 4. A aplicação estará disponível em `http://localhost:8080`.
+
+> Se preferir usar Maven instalado localmente, execute `mvn spring-boot:run` dentro da pasta `backend/`.
+
+## ☁️ Deploy e Ambiente de Produção
+
+A aplicação foi estruturada para suportar deploy contínuo, seguindo os princípios do **Twelve-Factor App**. Isso garante que o mesmo código executado localmente seja o utilizado em produção, alterando-se apenas as configurações injetadas via Variáveis de Ambiente.
+
+*   **Banco de Dados:** Hospedado no [Neon](https://neon.tech/) (Serverless Postgres).
+*   **Backend (API):** Hospedado no [Render](https://render.com/) utilizando Docker (Multi-stage build).
+
+**URL Base da API (Produção):**
+`https://processo-seletivo-ppfz.onrender.com`
+
+### 🛠️ Como o Deploy foi configurado (Passo a Passo)
+
+Como o projeto utiliza a arquitetura de *Monorepo*, o deploy do backend foi configurado da seguinte forma:
+
+1. No Render, foi criado um novo **Web Service** selecionando a opção de ambiente **Docker**.
+2. O **Root Directory** (Diretório Raiz) foi configurado para a pasta `backend`, instruindo o servidor a ignorar os arquivos do frontend.
+3. O build e a execução são gerenciados automaticamente pelo arquivo `Dockerfile` presente na pasta do backend, que realiza a compilação via Maven e roda a aplicação em uma imagem Java super leve (Alpine).
+4. As credenciais do banco de dados de produção foram injetadas de forma segura através das **Environment Variables** no painel do Render, sobrescrevendo as configurações locais do Spring Boot:
+    * `SPRING_DATASOURCE_URL`: A URL JDBC gerada pelo Neon.
+    * `SPRING_DATASOURCE_USERNAME`: O usuário do banco em produção.
+    * `SPRING_DATASOURCE_PASSWORD`: A senha do banco em produção.
+
+### 🧪 Como testar a API em Produção
+
+Você pode utilizar os mesmos *bodies* JSON (listados na seção de testes locais) no Postman ou Insomnia. Basta substituir a URL base de `http://localhost:8080` pela URL pública do Render.
+
 
 ## 🧪 Testando a API (Exemplos de Uso)
 
