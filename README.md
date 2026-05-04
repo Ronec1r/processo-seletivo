@@ -213,3 +213,16 @@ Abaixo estão os principais endpoints para testar as funcionalidades e regras de
     }
     ```
 *   **Comportamento Esperado:** Retorna `400 Bad Request`. Retorna uma mensagem de erro indicando que a transição é inválida (ex: tentando pular de `LIBERADO` direto para `CANCELADO`), protegendo a integridade dos dados e respeitando os estados finais.
+
+### 7. Endpoints Auxiliares (Para os Dropdowns do Frontend)
+Para garantir uma boa experiência de usuário (UX) no formulário de cadastro, a API fornece endpoints de listagem simples para popular os campos de seleção (selects/dropdowns).
+
+*   **Listar Categorias:**
+    *   **Método:** `GET`
+    *   **URL:** `http://localhost:8080/categorias` (ou URL de produção)
+    *   **Retorno:** `200 OK` com a lista completa de categorias disponíveis.
+
+*   **Listar Solicitantes:**
+    *   **Método:** `GET`
+    *   **URL:** `http://localhost:8080/solicitantes` (ou URL de produção)
+    *   **Retorno:** `200 OK` com a lista completa de solicitantes cadastrados.
