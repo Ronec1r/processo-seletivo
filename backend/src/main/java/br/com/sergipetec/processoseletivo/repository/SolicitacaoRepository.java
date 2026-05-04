@@ -14,6 +14,7 @@ public interface SolicitacaoRepository extends JpaRepository<Solicitacao, Long> 
     //Query para buscar solicitações com filtros opcionais de status, categoria e intervalo de datas
     @Query(nativeQuery = true, value = """
         SELECT 
+            s.id AS id,
             sol.nome AS nomeSolicitante, 
             sol.cpf_cnpj AS documentoSolicitante, 
             cat.nome AS nomeCategoria, 
