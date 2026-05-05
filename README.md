@@ -38,6 +38,7 @@ A aplicação é organizada como um **monorepo** com backend e frontend desacopl
 | --- | --- | --- |
 | API (Backend) | Render | `https://processo-seletivo-ppfz.onrender.com` |
 | Banco de Dados | Neon (Serverless Postgres) | — |
+| Web (Frontend) | Vercel | `https://processo-seletivo-bice.vercel.app` |
 
 ## Execução Rápida
 

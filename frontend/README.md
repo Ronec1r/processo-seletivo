@@ -51,11 +51,11 @@ src/
 
 ## Integração com a API
 
-O arquivo [src/api/api.ts](src/api/api.ts) centraliza todas as chamadas HTTP. A `baseURL` aponta para o backend em produção (Render):
+O arquivo [src/api/api.ts](src/api/api.ts) centraliza todas as chamadas HTTP. A `baseURL` aponta para VITE_API_URL ou o servidor local:
 
 ```ts
 const api = axios.create({
-  baseURL: 'https://processo-seletivo-ppfz.onrender.com',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
 });
 ```
 
@@ -96,7 +96,7 @@ npm run dev
 
 A aplicação estará disponível em `http://localhost:5173`.
 
-> Por padrão, o frontend aponta para o backend em produção (Render). Para usar o backend local, altere a `baseURL` em `src/api/api.ts` para `http://localhost:8080`.
+> Por padrão, o frontend aponta para o backend local ou VITE_API_URL.
 
 ## Scripts Disponíveis
 
