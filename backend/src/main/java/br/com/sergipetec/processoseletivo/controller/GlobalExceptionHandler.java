@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleBusinessExceptions(RuntimeException ex) {
         Map<String, String> response = new HashMap<>();
         response.put("erro", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     // Trata os erros de validação do DTO (@NotNull, @NotBlank, etc)
