@@ -1,5 +1,6 @@
 package br.com.sergipetec.processoseletivo.controller;
 
+import br.com.sergipetec.processoseletivo.dto.ErroResponseDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,11 +14,15 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     // Trata erros de Regra de Negócio (ex: transição de status inválida)
-    @ExceptionHandler({IllegalStateException.class, IllegalArgumentException.class})
-    public ResponseEntity<Map<String, String>> handleBusinessExceptions(RuntimeException ex) {
-        Map<String, String> response = new HashMap<>();
-        response.put("erro", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErroResponseDTO> handleBusinessExceptions(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErroResponseDTO(ex.getMessage()));
+    }
+
+    // Trata os erros de status inexistente
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErroResponseDTO> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErroResponseDTO(ex.getMessage()));
     }
 
     // Trata os erros de validação do DTO (@NotNull, @NotBlank, etc)

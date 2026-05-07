@@ -1,4 +1,4 @@
-package br.com.sergipetec.processoseletivo.controller.dto;
+package br.com.sergipetec.processoseletivo.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
