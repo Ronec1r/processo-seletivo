@@ -1,4 +1,4 @@
-package br.com.sergipetec.processoseletivo.repository;
+package br.com.sergipetec.processoseletivo.dto;
 
 import java.math.BigDecimal;
 

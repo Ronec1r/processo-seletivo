@@ -19,26 +19,32 @@ API REST desenvolvida com **Java 17** e **Spring Boot**, responsável por toda a
 ```
 src/main/java/br/com/sergipetec/processoseletivo/
 ├── config/
-│   └── WebConfig.java                    # Configuração de CORS
+│   └── WebConfig.java                          # Configuração de CORS
 ├── controller/
-│   ├── SolicitacaoController.java        # Endpoints principais
-│   ├── SolicitanteController.java        # Listagem de solicitantes
-│   ├── CategoriaController.java          # Listagem de categorias
-│   ├── GlobalExceptionHandler.java       # Tratamento global de erros
-│   └── dto/
-│       ├── SolicitacaoRequestDTO.java    # DTO de entrada com validações
-│       └── SolicitanteDTO.java           # DTO de dropdown
+│   ├── SolicitacaoController.java              # Endpoints de solicitações
+│   ├── SolicitanteController.java              # Listagem de solicitantes
+│   ├── CategoriaController.java                # Listagem de categorias
+│   └── GlobalExceptionHandler.java             # Tratamento global de erros
+├── dto/
+│   ├── SolicitacaoRequestDTO.java              # Entrada: criação de solicitação
+│   ├── SolicitacaoResponseDTO.java             # Saída: dados completos da solicitação
+│   ├── SolicitacaoListagemProjection.java      # Saída: listagem resumida (projection)
+│   ├── AtualizarStatusDTO.java                 # Entrada: atualização de status
+│   ├── SolicitanteDTO.java                     # Saída: dados do solicitante
+│   ├── CategoriaDTO.java                       # Saída: dados da categoria
+│   └── ErroResponseDTO.java                    # Saída: mensagem de erro padronizada
 ├── entity/
-│   ├── Solicitacao.java                  # Entidade principal + enum de status
-│   ├── Solicitante.java                  # Entidade solicitante
-│   └── Categoria.java                    # Entidade categoria
+│   ├── Solicitacao.java                        # Entidade principal + enum de status
+│   ├── Solicitante.java                        # Entidade solicitante
+│   └── Categoria.java                          # Entidade categoria
 ├── repository/
-│   ├── SolicitacaoRepository.java        # Query nativa com filtros dinâmicos
-│   ├── SolicitanteRepository.java        # Query para dropdown
-│   ├── CategoriaRepository.java          # CRUD básico
-│   └── SolicitacaoListagemProjection.java # Interface Projection para listagem
+│   ├── SolicitacaoRepository.java              # Query nativa com filtros dinâmicos
+│   ├── SolicitanteRepository.java              # CRUD básico
+│   └── CategoriaRepository.java               # CRUD básico
 └── service/
-    └── SolicitacaoService.java           # Regras de negócio
+    ├── SolicitacaoService.java                 # Regras de negócio de solicitações
+    ├── SolicitanteService.java                 # Listagem de solicitantes
+    └── CategoriaService.java                   # Listagem de categorias
 ```
 
 ## Endpoints da API
@@ -52,14 +58,156 @@ src/main/java/br/com/sergipetec/processoseletivo/
 | `GET` | `/solicitacoes/{id}` | Busca uma solicitação por ID |
 | `PATCH` | `/solicitacoes/{id}/status` | Atualiza o status de uma solicitação |
 
-**Filtros disponíveis no `GET /solicitacoes`:**
+---
+
+#### `POST /solicitacoes`
+
+**Request body:**
+```json
+{
+  "solicitanteId": 1,
+  "categoriaId": 2,
+  "descricao": "Compra de material de escritório",
+  "valor": 350.00
+}
+```
+
+**Response `201 Created`:**
+```json
+{
+  "id": 7,
+  "solicitante": {
+    "id": 1,
+    "nome": "Rone Clay"
+  },
+  "categoria": {
+    "id": 2,
+    "nome": "Material"
+  },
+  "descricao": "Compra de material de escritório",
+  "valor": 350.00,
+  "status": "SOLICITADO",
+  "dataSolicitacao": "2025-05-07T14:32:00"
+}
+```
+
+**Response `400 Bad Request` (validação):**
+```json
+{
+  "solicitanteId": "O ID do solicitante é obrigatório",
+  "valor": "O valor deve ser maior que zero"
+}
+```
+
+**Response `400 Bad Request` (FK inexistente):**
+```json
+{
+  "erro": "Solicitante não encontrado."
+}
+```
+
+---
+
+#### `GET /solicitacoes`
+
+**Filtros opcionais:**
 
 | Parâmetro | Tipo | Exemplo |
 |---|---|---|
 | `status` | String | `?status=SOLICITADO` |
 | `categoriaId` | Long | `?categoriaId=2` |
-| `dataInicio` | LocalDate | `?dataInicio=2025-01-01` |
-| `dataFim` | LocalDate | `?dataFim=2025-12-31` |
+| `dataInicio` | LocalDateTime | `?dataInicio=2025-01-01T00:00:00` |
+| `dataFim` | LocalDateTime | `?dataFim=2025-12-31T23:59:59` |
+
+**Response `200 OK`:**
+```json
+[
+  {
+    "id": 7,
+    "nomeSolicitante": "Rone Clay",
+    "documentoSolicitante": "111.111.111-11",
+    "nomeCategoria": "Material",
+    "status": "SOLICITADO",
+    "valor": 350.00
+  }
+]
+```
+
+---
+
+#### `GET /solicitacoes/{id}`
+
+**Response `200 OK`:**
+```json
+{
+  "id": 7,
+  "solicitante": {
+    "id": 1,
+    "nome": "Rone Clay"
+  },
+  "categoria": {
+    "id": 2,
+    "nome": "Material"
+  },
+  "descricao": "Compra de material de escritório",
+  "valor": 350.00,
+  "status": "SOLICITADO",
+  "dataSolicitacao": "2025-05-07T14:32:00"
+}
+```
+
+**Response `400 Bad Request`:**
+```json
+{
+  "erro": "Solicitação não encontrada para o ID: 99"
+}
+```
+
+---
+
+#### `PATCH /solicitacoes/{id}/status`
+
+**Request body:**
+```json
+{
+  "status": "LIBERADO"
+}
+```
+
+**Response `200 OK`:**
+```json
+{
+  "id": 7,
+  "solicitante": {
+    "id": 1,
+    "nome": "Rone Clay"
+  },
+  "categoria": {
+    "id": 2,
+    "nome": "Material"
+  },
+  "descricao": "Compra de material de escritório",
+  "valor": 350.00,
+  "status": "LIBERADO",
+  "dataSolicitacao": "2025-05-07T14:32:00"
+}
+```
+
+**Response `400 Bad Request` (status inexistente):**
+```json
+{
+  "erro": "Status inválido: 'PENDENTE'. Valores permitidos: SOLICITADO, LIBERADO, APROVADO, REJEITADO, CANCELADO."
+}
+```
+
+**Response `409 Conflict` (transição inválida):**
+```json
+{
+  "erro": "Transição de status inválida: APROVADO para SOLICITADO"
+}
+```
+
+---
 
 ### Auxiliares (Dropdowns)
 
@@ -67,6 +215,28 @@ src/main/java/br/com/sergipetec/processoseletivo/
 |---|---|---|
 | `GET` | `/solicitantes` | Lista todos os solicitantes |
 | `GET` | `/categorias` | Lista todas as categorias |
+
+#### `GET /solicitantes`
+
+**Response `200 OK`:**
+```json
+[
+  { "id": 1, "nome": "Rone Clay" },
+  { "id": 2, "nome": "Yris Mayara" }
+]
+```
+
+#### `GET /categorias`
+
+**Response `200 OK`:**
+```json
+[
+  { "id": 1, "nome": "Serviços" },
+  { "id": 2, "nome": "Material" }
+]
+```
+
+---
 
 ## Máquina de Estados (State Pattern)
 
@@ -82,13 +252,25 @@ REJEITADO  ──► (estado final)
 CANCELADO  ──► (estado final)
 ```
 
-Tentativas de transições inválidas retornam `403 Forbidden` com mensagem explicativa.
+Tentativas de transições inválidas retornam `409 Conflict` com mensagem explicativa.
 
 ## Decisões Técnicas
 
-- **CPF/CNPJ em coluna única:** Mantido na tabela `solicitante` para simplificar a query nativa de listagem, evitando `LEFT JOINs` adicionais. A validação do formato é feita na camada de serviço.
-- **Interface Projections:** Usadas no repositório de listagem para mapear o resultado do SQL nativo de forma leve, sem sobrecarregar o contexto do Hibernate.
+- **Padrão DTO em todas as camadas:** Nenhuma entidade JPA é exposta diretamente nos endpoints. Cada contexto tem seu próprio DTO: `SolicitacaoRequestDTO` para entrada, `SolicitacaoResponseDTO` para detalhamento, `SolicitacaoListagemProjection` para listagem e `ErroResponseDTO` para erros. A conversão é feita via método estático `converterParaDTO()` em cada DTO, mantendo a responsabilidade de mapeamento centralizada.
+
+- **Separação de exceções por semântica HTTP:** `IllegalStateException` (violação de regra de negócio, ex: transição de status inválida) retorna `409 Conflict`. `IllegalArgumentException` (entrada inválida, ex: status inexistente, FK não encontrada) retorna `400 Bad Request`. Os dois são tratados em handlers separados no `GlobalExceptionHandler`.
+
+- **Service layer para todos os controllers:** Nenhum controller acessa repositórios diretamente. `CategoriaService`, `SolicitanteService` e `SolicitacaoService` encapsulam toda lógica de acesso a dados e mapeamento para DTO.
+
+- **Busca de entidades antes do save:** No cadastro de solicitação, `Solicitante` e `Categoria` são buscados via `findById` antes de associar à nova `Solicitacao`. Isso garante que o objeto retornado tenha todos os campos populados (nome, documento, etc.) em vez de um objeto shell com apenas o ID.
+
+- **Método privado `buscarEntidadePorId`:** O `SolicitacaoService` expõe `buscarPorId` retornando DTO para o controller, e mantém `buscarEntidadePorId` privado para uso interno (usado por `atualizarStatus`). Isso evita expor a entidade JPA fora do service.
+
+- **Interface Projections na listagem:** `SolicitacaoListagemProjection` é usada na query nativa de listagem para mapear apenas os campos necessários, sem carregar o grafo completo de entidades no contexto do Hibernate.
+
 - **State Pattern via Enum:** Cada constante do enum `StatusSolicitacao` sobrescreve o método `transitar()`, aplicando o princípio Open/Closed (SOLID) e eliminando múltiplos `if/else` na camada de serviço.
+
+- **CPF/CNPJ em coluna única:** Mantido na tabela `solicitante` para simplificar a query nativa de listagem, evitando `LEFT JOINs` adicionais.
 
 ## Pré-requisitos
 
@@ -108,7 +290,7 @@ Tentativas de transições inválidas retornam `403 Forbidden` com mensagem expl
    spring.datasource.password=SUA_SENHA
    ```
 
-### Schema resumido(DDL)
+### Schema resumido (DDL)
 
 ```sql
 CREATE TABLE solicitante (
@@ -135,7 +317,7 @@ CREATE TABLE solicitacao (
 );
 ```
 
-### Dados inseridos(DML)
+### Dados inseridos (DML)
 
 ```sql
 INSERT INTO solicitante (nome, cpf_cnpj) VALUES

@@ -78,13 +78,13 @@ public class Solicitacao {
         REJEITADO {
             @Override
             public void transitar(Solicitacao solicitacao, StatusSolicitacao novoStatus) {
-                throw new IllegalStateException("A solicitação foi REJEITADA e este é um estado final.");
+                throw new IllegalStateException(String.format("Transição de status inválida: %s para %s, pois é um estado final", this, novoStatus));
             }
         },
         CANCELADO {
             @Override
             public void transitar(Solicitacao solicitacao, StatusSolicitacao novoStatus) {
-                throw new IllegalStateException("A solicitação foi CANCELADA e este é um estado final.");
+                throw new IllegalStateException(String.format("Transição de status inválida: %s para %s, pois é um estado final", this, novoStatus));
             }
         };
 

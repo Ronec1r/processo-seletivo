@@ -1,11 +1,10 @@
 package br.com.sergipetec.processoseletivo.controller;
 
-import br.com.sergipetec.processoseletivo.controller.dto.SolicitacaoRequestDTO;
-import br.com.sergipetec.processoseletivo.entity.Categoria;
+import br.com.sergipetec.processoseletivo.dto.AtualizarStatusDTO;
+import br.com.sergipetec.processoseletivo.dto.SolicitacaoRequestDTO;
+import br.com.sergipetec.processoseletivo.dto.SolicitacaoResponseDTO;
 import br.com.sergipetec.processoseletivo.entity.Solicitacao;
-import br.com.sergipetec.processoseletivo.entity.Solicitante;
-import br.com.sergipetec.processoseletivo.repository.SolicitacaoListagemProjection;
-import br.com.sergipetec.processoseletivo.repository.SolicitacaoRepository;
+import br.com.sergipetec.processoseletivo.dto.SolicitacaoListagemProjection;
 import br.com.sergipetec.processoseletivo.service.SolicitacaoService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/solicitacoes")
@@ -24,26 +22,12 @@ public class SolicitacaoController {
     @Autowired
     private SolicitacaoService solicitacaoService;
 
-    @Autowired
-    private SolicitacaoRepository solicitacaoRepository;
+
 
     // 1. Cadastro de Solicitação
     @PostMapping
-    public ResponseEntity<Solicitacao> cadastrar(@Valid @RequestBody SolicitacaoRequestDTO dto) {
-        Solicitacao novaSolicitacao = new Solicitacao();
-
-        Solicitante solicitante = new Solicitante();
-        solicitante.setId(dto.solicitanteId());
-        novaSolicitacao.setSolicitante(solicitante);
-
-        Categoria categoria = new Categoria();
-        categoria.setId(dto.categoriaId());
-        novaSolicitacao.setCategoria(categoria);
-
-        novaSolicitacao.setDescricao(dto.descricao());
-        novaSolicitacao.setValor(dto.valor());
-
-        Solicitacao solicitacaoCriada = solicitacaoService.cadastrar(novaSolicitacao);
+    public ResponseEntity<SolicitacaoResponseDTO> cadastrar(@Valid @RequestBody SolicitacaoRequestDTO dto) {
+        SolicitacaoResponseDTO solicitacaoCriada = solicitacaoService.cadastrar(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(solicitacaoCriada);
     }
 
@@ -55,30 +39,29 @@ public class SolicitacaoController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataInicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dataFim
     ) {
-        List<SolicitacaoListagemProjection> listagem = solicitacaoRepository.buscarSolicitacoesComFiltros(status, categoriaId, dataInicio, dataFim);
+        List<SolicitacaoListagemProjection> listagem = solicitacaoService.listar(status, categoriaId, dataInicio, dataFim);
         return ResponseEntity.ok(listagem);
     }
 
     // 3. Detalhamento
     @GetMapping("/{id}")
-    public ResponseEntity<Solicitacao> detalhar(@PathVariable Long id) {
+    public ResponseEntity<SolicitacaoResponseDTO> detalhar(@PathVariable Long id) {
         return ResponseEntity.ok(solicitacaoService.buscarPorId(id));
     }
 
     // 4. Atualização de Status
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Solicitacao> atualizarStatus(
+    public ResponseEntity<SolicitacaoResponseDTO> atualizarStatus(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
+            @Valid @RequestBody AtualizarStatusDTO dto) {
 
-        String statusStr = body.get("status");
-        if (statusStr == null) {
-            throw new IllegalArgumentException("O campo 'status' é obrigatório no corpo da requisição.");
+        String statusStr = dto.status();
+
+        try {
+            Solicitacao.StatusSolicitacao novoStatus = Solicitacao.StatusSolicitacao.valueOf(statusStr.toUpperCase());
+            return ResponseEntity.ok(solicitacaoService.atualizarStatus(id, novoStatus));
+        } catch (IllegalArgumentException e){
+            throw new IllegalArgumentException("Status inválido: " + statusStr + ". Status permitido: SOLICITADO, LIBERADO, REJEITADO, CANCELADO.");
         }
-
-        Solicitacao.StatusSolicitacao novoStatus = Solicitacao.StatusSolicitacao.valueOf(statusStr.toUpperCase());
-        Solicitacao solicitacaoAtualizada = solicitacaoService.atualizarStatus(id, novoStatus);
-
-        return ResponseEntity.ok(solicitacaoAtualizada);
     }
 }

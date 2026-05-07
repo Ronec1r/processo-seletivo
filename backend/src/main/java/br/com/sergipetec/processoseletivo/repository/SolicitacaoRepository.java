@@ -1,5 +1,6 @@
 package br.com.sergipetec.processoseletivo.repository;
 
+import br.com.sergipetec.processoseletivo.dto.SolicitacaoListagemProjection;
 import br.com.sergipetec.processoseletivo.entity.Solicitacao;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
