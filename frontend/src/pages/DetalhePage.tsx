@@ -29,7 +29,28 @@ export default function DetalhePage() {
     }
   };
 
-  useEffect(() => { carregar(); }, [id]);
+  useEffect(() => {
+    if (!id) return;
+    let cancelado = false;
+
+    (async () => {
+      try {
+        const data = await getSolicitacao(Number(id));
+        if (cancelado) return;
+        setSolicitacao(data);
+        setErro('');
+      } catch {
+        if (cancelado) return;
+        setErro('Solicitação não encontrada.');
+      } finally {
+        if (!cancelado) setCarregando(false);
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [id]);
 
   const formatarValor = (v: number) =>
     v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
