@@ -8,6 +8,26 @@ import type { Categoria, FiltrosListagem, SolicitacaoListagem, StatusSolicitacao
 
 const STATUS_OPTIONS: StatusSolicitacao[] = ['SOLICITADO', 'LIBERADO', 'APROVADO', 'REJEITADO', 'CANCELADO'];
 
+function getHojeInput() {
+  const hoje = new Date();
+  const yyyy = String(hoje.getFullYear());
+  const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+  const dd = String(hoje.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function validarIntervaloDatas(dataInicio?: string, dataFim?: string) {
+  const hoje = getHojeInput();
+
+  if (dataInicio && dataInicio > hoje) return 'A data início não pode ser maior que hoje.';
+  if (dataFim && dataFim > hoje) return 'A data fim não pode ser maior que hoje.';
+
+  if (!dataInicio || !dataFim) return null;
+  // `input[type=date]` fornece YYYY-MM-DD, que é comparável lexicograficamente.
+  if (dataFim < dataInicio) return 'A data fim deve ser maior ou igual à data início.';
+  return null;
+}
+
 export default function ListagemPage() {
   const navigate = useNavigate();
 
@@ -21,16 +41,26 @@ export default function ListagemPage() {
   const [modalStatus, setModalStatus] = useState<StatusSolicitacao | null>(null);
 
   const buscar = useCallback(async () => {
+    const erroDatas = validarIntervaloDatas(filtros.dataInicio, filtros.dataFim);
+    if (erroDatas) {
+      setErro(erroDatas);
+      return;
+    }
+
     setCarregando(true);
     setErro('');
     try {
       const params: FiltrosListagem = {};
       if (filtros.status) params.status = filtros.status;
       if (filtros.categoriaId) params.categoriaId = filtros.categoriaId;
-      if (filtros.dataInicio) params.dataInicio = new Date(filtros.dataInicio).toISOString();
+      if (filtros.dataInicio) {
+        const inicio = new Date(filtros.dataInicio);
+        inicio.setUTCHours(0, 0, 0, 0);
+        params.dataInicio = inicio.toISOString();
+      }
       if (filtros.dataFim) {
         const fim = new Date(filtros.dataFim);
-        fim.setHours(23, 59, 59);
+        fim.setUTCHours(23, 59, 59, 999);
         params.dataFim = fim.toISOString();
       }
       const data = await getSolicitacoes(params);
@@ -43,9 +73,27 @@ export default function ListagemPage() {
   }, [filtros]);
 
   useEffect(() => {
-    getCategorias().then(setCategorias).catch(() => {});
-    buscar();
-  }, [buscar]);
+    let cancelado = false;
+
+    getCategorias().then(data => {
+      if (!cancelado) setCategorias(data);
+    }).catch(() => {});
+
+    (async () => {
+      try {
+        const data = await getSolicitacoes();
+        if (!cancelado) setSolicitacoes(data);
+      } catch {
+        if (!cancelado) setErro('Erro ao carregar as solicitações.');
+      } finally {
+        if (!cancelado) setCarregando(false);
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   const limparFiltros = () => setFiltros({});
 
@@ -67,6 +115,9 @@ export default function ListagemPage() {
   const formatarValor = (v: number) =>
     v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+  const hoje = getHojeInput();
+  const maxDataInicio = filtros.dataFim && filtros.dataFim < hoje ? filtros.dataFim : hoje;
+
   return (
     <Layout>
       <div className="flex items-center justify-between mb-6">
@@ -86,7 +137,10 @@ export default function ListagemPage() {
             <label className="block text-slate-400 text-xs mb-1">Status</label>
             <select
               value={filtros.status ?? ''}
-              onChange={e => setFiltros(f => ({ ...f, status: e.target.value || undefined }))}
+              onChange={e => {
+                setErro('');
+                setFiltros(f => ({ ...f, status: e.target.value || undefined }));
+              }}
               className="w-full bg-navy border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
             >
               <option value="">Todos</option>
@@ -100,7 +154,13 @@ export default function ListagemPage() {
             <label className="block text-slate-400 text-xs mb-1">Categoria</label>
             <select
               value={filtros.categoriaId ?? ''}
-              onChange={e => setFiltros(f => ({ ...f, categoriaId: e.target.value ? Number(e.target.value) : undefined }))}
+              onChange={e => {
+                setErro('');
+                setFiltros(f => ({
+                  ...f,
+                  categoriaId: e.target.value ? Number(e.target.value) : undefined,
+                }));
+              }}
               className="w-full bg-navy border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
             >
               <option value="">Todas</option>
@@ -115,7 +175,11 @@ export default function ListagemPage() {
             <input
               type="date"
               value={filtros.dataInicio ?? ''}
-              onChange={e => setFiltros(f => ({ ...f, dataInicio: e.target.value || undefined }))}
+              max={maxDataInicio}
+              onChange={e => {
+                setErro('');
+                setFiltros(f => ({ ...f, dataInicio: e.target.value || undefined }));
+              }}
               className="w-full bg-navy border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
             />
           </div>
@@ -125,7 +189,12 @@ export default function ListagemPage() {
             <input
               type="date"
               value={filtros.dataFim ?? ''}
-              onChange={e => setFiltros(f => ({ ...f, dataFim: e.target.value || undefined }))}
+              min={filtros.dataInicio}
+              max={hoje}
+              onChange={e => {
+                setErro('');
+                setFiltros(f => ({ ...f, dataFim: e.target.value || undefined }));
+              }}
               className="w-full bg-navy border border-slate-600 text-slate-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
             />
           </div>
