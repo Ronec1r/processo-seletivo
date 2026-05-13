@@ -26,11 +26,24 @@ A aplicação é organizada como um **monorepo** com backend e frontend desacopl
 | Interface | React 19, TypeScript, Tailwind CSS 4, Vite |
 | Deploy | Docker + Render (backend), Neon (banco) |
 
-## Decisões Técnicas Relevantes
+## Decisões Técnicas
 
-1. **CPF/CNPJ em coluna única:** Mantido na tabela `solicitante` para simplificar a query nativa de listagem, evitando `LEFT JOINs` desnecessários entre tabelas de herança.
-2. **Interface Projections (Spring Data):** Usadas para mapear o resultado do SQL nativo de listagem de forma leve, sem sobrecarregar o contexto do Hibernate.
-3. **State Pattern via Enum:** Cada estado do enum `StatusSolicitacao` encapsula suas próprias transições permitidas, aplicando o princípio Open/Closed (SOLID) e eliminando lógica condicional na camada de serviço.
+- **Padrão DTO em todas as camadas:** Nenhuma entidade JPA é exposta diretamente nos endpoints. Cada contexto tem seu próprio DTO: `SolicitacaoRequestDTO` para entrada, `SolicitacaoResponseDTO` para detalhamento, `SolicitacaoListagemProjection` para listagem e `ErroResponseDTO` para erros. A conversão é feita via método estático `converterParaDTO()` em cada DTO, mantendo a responsabilidade de mapeamento centralizada.
+
+- **Separação de exceções por semântica HTTP:** `IllegalStateException` (violação de regra de negócio, ex: transição de status inválida) retorna `409 Conflict`. `IllegalArgumentException` (entrada inválida, ex: status inexistente, FK não encontrada) retorna `400 Bad Request`. Os dois são tratados em handlers separados no `GlobalExceptionHandler`.
+
+- **Service layer para todos os controllers:** Nenhum controller acessa repositórios diretamente. `CategoriaService`, `SolicitanteService` e `SolicitacaoService` encapsulam toda lógica de acesso a dados e mapeamento para DTO.
+
+- **Busca de entidades antes do save:** No cadastro de solicitação, `Solicitante` e `Categoria` são buscados via `findById` antes de associar à nova `Solicitacao`. Isso garante que o objeto retornado tenha todos os campos populados (nome, documento, etc.) em vez de um objeto shell com apenas o ID.
+
+- **Método privado `buscarEntidadePorId`:** O `SolicitacaoService` expõe `buscarPorId` retornando DTO para o controller, e mantém `buscarEntidadePorId` privado para uso interno (usado por `atualizarStatus`). Isso evita expor a entidade JPA fora do service.
+
+- **Interface Projections na listagem:** `SolicitacaoListagemProjection` é usada na query nativa de listagem para mapear apenas os campos necessários, sem carregar o grafo completo de entidades no contexto do Hibernate.
+
+- **State Pattern via Enum:** Cada constante do enum `StatusSolicitacao` sobrescreve o método `transitar()`, aplicando o princípio Open/Closed (SOLID) e eliminando múltiplos `if/else` na camada de serviço.
+
+- **CPF/CNPJ em coluna única:** Mantido na tabela `solicitante` para simplificar a query nativa de listagem, evitando `LEFT JOINs` adicionais.
+
 
 ## Ambiente de Produção
 
